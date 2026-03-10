@@ -1,0 +1,213 @@
+Here is a **compressed 4-week plan** that still follows the project steps in the assignment while leaving enough time at the end for the report and debugging.
+
+---
+
+# 4-Week Plan for ELEC 292 Project
+
+## Week 1 – Data Collection + Initial Visualization
+
+**Goal:** Complete **Step 1** and begin **Step 3**.
+
+### Tasks
+
+**1. Project setup**
+
+* Decide which app to use (e.g., Phyphox).
+* Agree on:
+
+  * Sampling settings
+  * File naming format
+  * Phone positions
+  * Folder structure.
+
+**2. Data collection**
+Each team member collects **at least 5 minutes** of accelerometer data:
+
+* Both activities:
+
+  * Walking
+  * Jumping
+* Multiple phone positions:
+
+  * Front pocket
+  * Back pocket
+  * Hand
+  * Jacket pocket
+* Ensure **balanced data between classes**.
+
+**3. Data transfer & labeling**
+
+* Export all data to CSV.
+* Label files with:
+
+  * user
+  * activity
+  * trial
+  * phone position.
+
+**4. Initial visualization**
+
+* Plot acceleration vs time for:
+
+  * x, y, z axes
+  * walking vs jumping
+* Look for:
+
+  * noise
+  * missing values
+  * unusual signals.
+
+### End of Week Deliverables
+
+✅ Raw dataset (CSV)
+✅ Labeled files from all members
+✅ Initial plots of accelerometer signals
+
+---
+
+# Week 2 – Data Storage + Pre-Processing
+
+**Goal:** Complete **Step 2 and Step 4**.
+
+### Tasks
+
+**1. Data storage (HDF5)**
+
+* Import raw CSV data.
+* Store in HDF5 with:
+
+  * raw data
+  * metadata (user, activity, trial).
+
+**2. Window segmentation**
+
+* Split signals into **5-second windows**.
+
+**3. Dataset splitting**
+
+* Shuffle windows.
+* Split:
+
+  * **90% training**
+  * **10% testing**
+* Ensure **no overlap between train/test data**.
+
+**4. Pre-processing**
+
+* Handle missing values.
+* Apply noise reduction (e.g., moving average filter).
+* Compare **raw vs filtered plots**.
+
+### End of Week Deliverables
+
+✅ Organized HDF5 dataset
+✅ Segmented windows
+✅ Train/test datasets
+✅ Pre-processed signals
+
+---
+
+# Week 3 – Feature Extraction + Model Training
+
+**Goal:** Complete **Step 5 and Step 6**.
+
+### Tasks
+
+**1. Feature extraction**
+From each 5-second window compute **at least 10 features**, for example:
+
+* mean
+* median
+* variance
+* standard deviation
+* max
+* min
+* range
+* skewness
+* signal energy
+* RMS.
+
+**2. Feature normalization**
+Apply scaling such as:
+
+* **z-score standardization**
+  or
+* **min-max normalization**.
+
+**3. Train classifier**
+
+* Train **logistic regression** using training set.
+
+**4. Model evaluation**
+
+* Test model on test set.
+* Calculate:
+
+  * training accuracy
+  * test accuracy.
+
+**5. Learning curves**
+
+* Plot training progress.
+
+### End of Week Deliverables
+
+✅ Feature dataset
+✅ Normalized features
+✅ Trained logistic regression model
+✅ Accuracy results and learning curves
+
+---
+
+# Week 4 – Desktop App + Report + Demo
+
+**Goal:** Complete **Step 7 and final deliverables**.
+
+### Tasks
+
+**1. Build desktop app**
+Using **Tkinter or PyQt5**:
+
+* Input: CSV file
+* Processing:
+
+  * segmentation
+  * preprocessing
+  * feature extraction
+  * classification
+* Output:
+
+  * CSV with labels (walking/jumping)
+  * plot of predictions.
+
+**2. System testing**
+
+* Run several CSV files.
+* Verify correct outputs.
+* Fix bugs.
+
+**3. Write the report (15–20 pages)**
+Include sections:
+
+1. Data collection
+2. Data storage
+3. Visualization
+4. Preprocessing
+5. Feature extraction & normalization
+6. Training/testing classifier
+7. Model deployment
+
+**4. Record demo video**
+Show:
+
+* data collection clips
+* desktop app running
+* CSV input → classification output.
+
+### End of Week Deliverables
+
+✅ Working desktop application
+✅ Project report
+✅ Demo video
+✅ HDF5 dataset
+✅ Python code
