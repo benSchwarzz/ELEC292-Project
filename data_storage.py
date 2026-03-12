@@ -14,7 +14,7 @@ split = int(0.9 * num_windows)
 train_set = windows[:split]
 test_set = windows[split:]
 
-with h5py.File('h5py_data.h5', 'w') as f:
+with h5py.File('h5py_data.h5', 'a') as f:
     processed = f.create_group('processed')
     raw = f.create_group('raw')
 
