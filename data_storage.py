@@ -8,7 +8,7 @@ data = np.loadtxt('Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv', delimiter=
 window_len = 500
 num_windows = len(data) // window_len
 truncated_data = data[:num_windows * window_len]
-windows = truncated_data.reshape(-1, window_len, 5)
+windows = truncated_data.reshape(-1, window_len, 3)
 
 split = int(0.9 * num_windows)
 train_set = windows[:split]
