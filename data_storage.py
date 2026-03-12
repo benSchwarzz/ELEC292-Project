@@ -1,21 +1,21 @@
 import h5py
 import numpy as np
 
-# Name will be as follows: "type_" + dataset_name -> e.g. "train_walking_ben", "test_walking_ben", "raw_walking_ben"
-dataset_name = "walking_ben"
-data = np.loadtxt('Data_WalkingOutside_Ben.xlsx', delimiter=',', skiprows=1)
+# Name will be as follows: "type_" + dataset_name -> e.g. "train_jumping_ben", "test_jumping_ben", "raw_jumping_ben"
+dataset_name = "jumping_ben"
+data = np.loadtxt('Data_Jumping_Ben.csv', delimiter=',', skiprows=1)
 
 window_len = 500
 num_windows = len(data) // window_len
 truncated_data = data[:num_windows * window_len]
-windows = truncated_data.reshape(-1, window_len, 3)
+windows = truncated_data.reshape(-1, window_len, 5)
 
 split = int(0.9 * num_windows)
 train_set = windows[:split]
 test_set = windows[split:]
 
 with h5py.File('h5py_data.h5', 'w') as f:
-    processed = f.create_gropup('processed')
+    processed = f.create_group('processed')
     raw = f.create_group('raw')
 
     processed.create_dataset("train_" + dataset_name, data=train_set, compression='gzip')
