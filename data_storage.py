@@ -2,8 +2,8 @@ import h5py
 import numpy as np
 
 # Name will be as follows: "type_" + dataset_name -> e.g. "train_jumping_ben", "test_jumping_ben", "raw_jumping_ben"
-dataset_name = "jumping_ben"
-data = np.loadtxt('Data_Jumping_Ben.csv', delimiter=',', skiprows=1)
+dataset_name = "jumping_christian"
+data = np.loadtxt('ELEC292_Jumping_RightHand_Data_Christian.csv', delimiter=',', skiprows=1)
 
 window_len = 500
 num_windows = len(data) // window_len
