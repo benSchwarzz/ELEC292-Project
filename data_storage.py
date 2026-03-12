@@ -2,8 +2,8 @@ import h5py
 import numpy as np
 
 # Name will be as follows: "type_" + dataset_name -> e.g. "train_jumping_ben", "test_jumping_ben", "raw_jumping_ben"
-dataset_name = "jumping_ben"
-data = np.loadtxt('Data\\CSV\\Data_Jumping_Ben.csv', delimiter=',', skiprows=1)
+dataset_name = "jumping_sachin"
+data = np.loadtxt('Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv', delimiter=',', skiprows=1)
 
 window_len = 500
 num_windows = len(data) // window_len
@@ -15,8 +15,8 @@ train_set = windows[:split]
 test_set = windows[split:]
 
 with h5py.File('h5py_data.h5', 'a') as f:
-    processed = f.create_group('processed')
-    raw = f.create_group('raw')
+    processed = f['processed']
+    raw = f['raw']
 
     processed.create_dataset("train_" + dataset_name, data=train_set, compression='gzip')
     processed.create_dataset("test_" + dataset_name, data=test_set, compression='gzip')
