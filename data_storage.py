@@ -1,14 +1,14 @@
 import h5py
 import numpy as np
 
-# Name will be as follows: "type_" + dataset_name -> e.g. "train_jumping_ben", "test_jumping_ben", "raw_jumping_ben"
-dataset_name = "jumping_sachin"
-data = np.loadtxt('Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv', delimiter=',', skiprows=1)
+# Name will be as follows: "type_" + dataset_name -> e.g. "train_walking_outside_ben", "test_walking_outside_ben", "raw_walking_outside_ben"
+dataset_name = "walking_outside_ben"
+data = np.loadtxt('Data\\CSV\\Data_WalkingOutside_Ben.csv', delimiter=',', skiprows=1)
 
 window_len = 500
 num_windows = len(data) // window_len
 truncated_data = data[:num_windows * window_len]
-windows = truncated_data.reshape(-1, window_len, 3)
+windows = truncated_data.reshape(-1, window_len, 5)
 
 split = int(0.9 * num_windows)
 train_set = windows[:split]
