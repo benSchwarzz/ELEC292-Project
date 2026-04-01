@@ -5,14 +5,14 @@ import matplotlib.animation as animation
 from matplotlib.gridspec import GridSpec
 from matplotlib.cm import get_cmap
 
-CSV_PATH = "ELEC292-Project\\Data\\CSV\\Data_Walking_SweaterPocket_Sachin.csv"
-STEP = 50 # number of samples added per frame
+CSV_PATH = "ELEC292-Project\\Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv"
+STEP = 500 # number of samples added per frame
 INTERVAL_MS = 10 # ms between frames
 VISIBLE_SEC = None # scrolling window in seconds
 MAX_POINTS = 500 # max points on 2D graphs for performance
 TRAIL_POINTS = 200 # number of recent points shown on 3D scatter
 
-COLOURS = ['r', 'g', 'b']
+COLOURS = ['#ff124f', '#ff00a0', '#fe75fe']
 AXES = ['X', 'Y', 'Z']
 CMAP = get_cmap('plasma')   # colormap for 3D trail old = dark, new = bright
 
@@ -37,8 +37,8 @@ axes = [fig.add_subplot(gs[i, 0]) for i in range(3)]
 stat_ax = fig.add_subplot(gs[0, 1])
 ax3d = fig.add_subplot(gs[1:, 1], projection = '3d')
 
-BG = "#16213e"
-GRID_C = "#2a2a4a"
+BG = "#120458"
+GRID_C = "#7a04eb"
 TEXT_C = "#e0e0e0"
 
 for i, ax in enumerate(axes):
