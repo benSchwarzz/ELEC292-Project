@@ -5,7 +5,7 @@ import matplotlib.animation as animation
 from matplotlib.gridspec import GridSpec
 from matplotlib.cm import get_cmap
 
-CSV_PATH = "Data\CSV\ELEC292_Jumping_RightHand_Data_Christian.csv"
+CSV_PATH = "ELEC292-Project\\Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv"
 STEP = 50 # number of samples added per frame
 INTERVAL_MS = 10 # ms between frames
 VISIBLE_SEC = None # scrolling window in seconds
