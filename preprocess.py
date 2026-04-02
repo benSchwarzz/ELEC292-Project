@@ -13,21 +13,21 @@ HDF5_FILE = 'data_storage.h5'
 DATASETS = [
     # Sachin (~10 Hz)
     ("sachin_jumping_sweater_pocket",
-     "ELEC292-Project\\Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv",    2),
+     "Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv",    2),
     ("sachin_walking_sweater_pocket",
-     "ELEC292-Project\\Data\\CSV\\Data_Walking_SweaterPocket_Sachin.csv",    2),
+     "Data\\CSV\\Data_Walking_SweaterPocket_Sachin.csv",    2),
 
     # Ben (~100 Hz)
     ("ben_jumping",
-     "ELEC292-Project\\Data\\CSV\\Data_Jumping_Ben.csv",                     15),
+     "Data\\CSV\\Data_Jumping_Ben.csv",                     15),
     ("ben_walking_outside",
-     "ELEC292-Project\\Data\\CSV\\Data_WalkingOutside_Ben.csv",              15),
+     "Data\\CSV\\Data_WalkingOutside_Ben.csv",              15),
 
     # Christian (~100 Hz)
     ("christian_jumping_right_hand",
-     "ELEC292-Project\\Data\\CSV\\ELEC292_Jumping_RightHand_Data_Christian.csv",  15),
+     "Data\\CSV\\ELEC292_Jumping_RightHand_Data_Christian.csv",  15),
     ("christian_walking_left_pocket",
-     "ELEC292-Project\\Data\\CSV\\ELEC292_Walking_LeftPocket_Data_Christian.csv", 15),
+     "Data\\CSV\\ELEC292_Walking_LeftPocket_Data_Christian.csv", 15),
 ]
 
 
