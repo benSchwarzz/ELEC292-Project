@@ -21,8 +21,12 @@ def extract_features(window):
         features.append(np.var(signal))
         features.append(np.min(signal))
         features.append(np.max(signal))
-        features.append(np.max(signal) - np.min(signal)) # range
+        features.append(np.max(signal) - np.min(signal))
         features.append(np.median(signal))
+        features.append(skew(signal))
+        features.append(kurtosis(signal))
+        features.append(np.sqrt(np.mean(signal**2)))
+
         
         """features.append(kurtosis(signal))
         features.append(np.sqrt(np.mean(signal**2))) # RMS

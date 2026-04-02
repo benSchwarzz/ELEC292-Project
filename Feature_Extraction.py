@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
-from scipy.stats import skew
+from scipy.stats import skew, kurtosis
 from sklearn.preprocessing import StandardScaler
 
 print("SCRIPT IS RUNNING - NEW VERSION")
@@ -44,7 +44,7 @@ def calculate_stats(signal, prefix):
         f"median_{prefix}": np.median(signal),
         f"var_{prefix}": np.var(signal),
         f"skew_{prefix}": skew(signal),
-        f"kurtosis_{prefix}": pd.Series(signal).kurtosis(),
+        f"kurtosis_{prefix}": kurtosis(signal),
         f"rms_{prefix}": np.sqrt(np.mean(signal**2))
     }
 
