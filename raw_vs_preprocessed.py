@@ -1,76 +1,71 @@
 """
-visualize_comparison.py
-=======================
-Step 3 - Visualization: Raw vs Preprocessed comparison
+raw_vs_preprocessed.py
+======================
+Step 3 – Visualization: Raw vs Preprocessed comparison
 
 Plots a single figure with 18 subplots arranged as:
-    - 3 rows per person (one row per axis: X, Y, Z)
-    - 3 columns per person (one column per dataset: jumping, walking)
-    - 6 people x 3 axes = 18 graphs total
+    - 3 rows (one per axis: X, Y, Z)
+    - 6 columns (one per dataset: Sachin jump/walk, Ben jump/walk, Christian jump/walk)
 
-    Layout (each cell = one subplot):
-                  Sachin Jump  |  Sachin Walk  |  Ben Jump  |  Ben Walk  |  Christian Jump  |  Christian Walk
-        X axis  |     ...      |      ...      |    ...     |    ...     |       ...        |       ...
-        Y axis  |     ...      |      ...      |    ...     |    ...     |       ...        |       ...
-        Z axis  |     ...      |      ...      |    ...     |    ...     |       ...        |       ...
+Each subplot overlays the raw signal (faded) with the preprocessed (filtered)
+signal so the smoothing effect of the moving-average filter is clearly visible.
 
-Each subplot shows the raw signal (faded) overlaid with the preprocessed
-(filtered) signal so the smoothing effect is clearly visible.
-
-Usage
------
-    python visualize_comparison.py
-
-Requires dataset.h5 to have both raw/ and preprocessed/ groups populated.
-Run build_dataset.py then preprocess.py before this script.
+Run data_storage.py then preprocess.py before this script.
 """
 
 import numpy as np
 import h5py
+import matplotlib
+matplotlib.use('Agg')   # non-interactive backend; remove this line if running
+                        # interactively (e.g. Jupyter / IDE with display)
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import os
 
-BASE = os.path.dirname(os.path.abspath(__file__))
-HDF5_FILE = os.path.join(BASE, 'data_storage.h5')
+# FIX: use local filename rather than an absolute path computed from __file__,
+# which broke when the script was called from a different working directory.
+HDF5_FILE = 'data_storage.h5'
 
-# Order of datasets as columns: (column_title, hdf5_dataset_name)
+# Column order: (column_title, hdf5_dataset_name)
 COLUMNS = [
-    ("Sachin\nJumping",  "sachin_jumping_sweater_pocket"),
-    ("Sachin\nWalking",  "sachin_walking_sweater_pocket"),
-    ("Ben\nJumping",     "ben_jumping"),
-    ("Ben\nWalking",     "ben_walking_outside"),
+    ("Sachin\nJumping",    "sachin_jumping_sweater_pocket"),
+    ("Sachin\nWalking",    "sachin_walking_sweater_pocket"),
+    ("Ben\nJumping",       "ben_jumping"),
+    ("Ben\nWalking",       "ben_walking_outside"),
     ("Christian\nJumping", "christian_jumping_right_hand"),
     ("Christian\nWalking", "christian_walking_left_pocket"),
 ]
 
-AXES       = ['X', 'Y', 'Z']
-AXIS_COLS  = [1, 2, 3]   # column indices in the stored array for x, y, z
+AXES      = ['X', 'Y', 'Z']
+AXIS_COLS = [1, 2, 3]          # column indices in stored array: 0=time, 1=x, 2=y, 3=z
 
-# Colours
-RAW_COLOUR  = '#8ab4f8'   # light blue — raw signal
-FILT_COLOUR = '#f28b3b'   # orange — filtered/preprocessed signal
-BG          = '#1a1a2e'
-PANEL_BG    = '#16213e'
-GRID_C      = '#2a2a4a'
-TEXT_C      = '#e0e0e0'
+RAW_COLOUR   = '#8ab4f8'       # light blue – raw signal
+FILT_COLOUR  = '#f28b3b'       # orange – preprocessed signal
+BG           = '#1a1a2e'
+PANEL_BG     = '#16213e'
+GRID_C       = '#2a2a4a'
+TEXT_C       = '#e0e0e0'
 AXIS_COLOURS = ['#e05c5c', '#5ce08a', '#5c9ee0']   # X=red  Y=green  Z=blue
 
 
 def load_dataset(f: h5py.File, group: str, name: str) -> np.ndarray:
-    """Return (N, 4) array [time, x, y, z] from the given group."""
+    """Return (N, 4) array [time, x, y, z] from the given HDF5 group."""
     return f[group][name][:]
 
 
 def main():
-    n_rows = len(AXES)       # 3
-    n_cols = len(COLUMNS)    # 6
+    if not os.path.exists(HDF5_FILE):
+        print(f"ERROR: {HDF5_FILE} not found. Run data_storage.py and preprocess.py first.")
+        return
+
+    n_rows = len(AXES)      # 3
+    n_cols = len(COLUMNS)   # 6
 
     fig, axes = plt.subplots(
         nrows=n_rows,
         ncols=n_cols,
         figsize=(22, 9),
-        sharex=False,   # each dataset has its own time range
+        sharex=False,
     )
 
     fig.patch.set_facecolor(BG)
@@ -83,7 +78,6 @@ def main():
 
         for col_idx, (col_title, ds_name) in enumerate(COLUMNS):
 
-            # Load raw and preprocessed arrays
             raw  = load_dataset(f, 'raw',          ds_name)
             prep = load_dataset(f, 'preprocessed', ds_name)
 
@@ -99,19 +93,19 @@ def main():
                     spine.set_edgecolor(GRID_C)
 
                 ax.tick_params(colors=TEXT_C, labelsize=6)
-                ax.grid(True, color=GRID_C, linewidth=0.4, linestyle='--', alpha=0.6)
+                ax.grid(True, color=GRID_C, linewidth=0.4,
+                        linestyle='--', alpha=0.6)
                 ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
                 ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
                 ax.tick_params(axis='x', labelsize=5.5)
                 ax.tick_params(axis='y', labelsize=5.5)
 
-                # Plot raw (faded, thin) then preprocessed (solid, slightly thicker)
-                ax.plot(t_raw,  raw[:,  col_num], color=RAW_COLOUR,
-                        linewidth=0.5, alpha=0.4, label='Raw')
-                ax.plot(t_prep, prep[:, col_num], color=FILT_COLOUR,
-                        linewidth=0.8, alpha=0.9, label='Preprocessed')
+                # Raw signal (faded, thin) then preprocessed (solid, thicker)
+                ax.plot(t_raw,  raw[:,  col_num],
+                        color=RAW_COLOUR,  linewidth=0.5, alpha=0.4, label='Raw')
+                ax.plot(t_prep, prep[:, col_num],
+                        color=FILT_COLOUR, linewidth=0.8, alpha=0.9, label='Preprocessed')
 
-                # Y-axis label on leftmost column only
                 if col_idx == 0:
                     ax.set_ylabel(
                         f"{axis_label} (m/s²)",
@@ -119,16 +113,13 @@ def main():
                         fontsize=8, fontweight='bold',
                     )
 
-                # Column title on top row only
                 if row_idx == 0:
                     ax.set_title(col_title, color=TEXT_C, fontsize=8,
                                  fontweight='bold', pad=6)
 
-                # X label on bottom row only
                 if row_idx == n_rows - 1:
                     ax.set_xlabel("Time (s)", color=TEXT_C, fontsize=7)
 
-    # Single shared legend at the top right of the figure
     legend_elements = [
         plt.Line2D([0], [0], color=RAW_COLOUR,  linewidth=1.5,
                    alpha=0.7, label='Raw'),
@@ -146,7 +137,9 @@ def main():
     )
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig("raw_vs_preprocessed.png", dpi=150, bbox_inches='tight')
+    plt.close()
+    print("Plot saved to raw_vs_preprocessed.png")
 
 
 if __name__ == "__main__":
