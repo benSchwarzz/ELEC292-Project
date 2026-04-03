@@ -60,16 +60,16 @@ def extract_features(segment):
     y = segment[:, 1]
     z = segment[:, 2]
 
-    if segment.shape[1] >= 4:
+    """if segment.shape[1] >= 4:
         abs_acc = segment[:, 3]
     else:
         abs_acc = np.sqrt(x**2 + y**2 + z**2)
-
+"""
     features = {}
     features.update(calculate_stats(x, "x"))
     features.update(calculate_stats(y, "y"))
     features.update(calculate_stats(z, "z"))
-    features.update(calculate_stats(abs_acc, "abs"))
+    
 
     return features
 

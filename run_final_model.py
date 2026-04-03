@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import joblib
 from scipy.stats import skew, kurtosis
+from preprocess import load_csv, remove_duplicates, fill_time_gaps, moving_average
 
 # =============================================================================
 # FEATURE EXTRACTION FUNCTION
@@ -27,19 +28,16 @@ def extract_features(window):
         features.append(kurtosis(signal))
         features.append(np.sqrt(np.mean(signal**2)))
 
-        
-        """features.append(kurtosis(signal))
-        features.append(np.sqrt(np.mean(signal**2))) # RMS
-        features.append(np.mean(np.abs(signal - np.mean(signal))))  # MAD
-        zero_crossings = np.sum(np.diff(np.sign(signal)) != 0)
-        features.append(zero_crossings / len(signal)) # ZCR"""
     return np.array(features)
 
 
 def segment_and_predict(csv_path, model_path, sampling_rate=50, window_seconds=5):
     clf = joblib.load(model_path)
 
-    df = pd.read_csv(csv_path)
+    df = load_csv(csv_path)
+    df = remove_duplicates(df)
+    df = fill_time_gaps(df)
+    df = moving_average(df, window=15)  # Use the same window as during preprocessing
 
     # Print columns so you can verify during testing
     print(f"CSV columns found: {df.columns.tolist()}")
