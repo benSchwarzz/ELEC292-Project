@@ -11,21 +11,21 @@ RANDOM_SEED = 292
 DATASETS = [
     # Sachin
     ("sachin_jumping_sweater_pocket",
-     "ELEC292-Project\\Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv",   1),
+     "Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv",                      1),
     ("sachin_walking_sweater_pocket",
-     "ELEC292-Project\\Data\\CSV\\Data_Walking_SweaterPocket_Sachin.csv",   0),
+     "Data\\CSV\\Data_Walking_SweaterPocket_Sachin.csv",                      0),
  
     # Ben
     ("ben_jumping",
-     "ELEC292-Project\\Data\\CSV\\Data_Jumping_Ben.csv",                    1),
+     "Data\\CSV\\Data_Jumping_Ben.csv",                                       1),
     ("ben_walking_outside",
-     "ELEC292-Project\\Data\\CSV\\Data_WalkingOutside_Ben.csv",             0),
+     "Data\\CSV\\Data_WalkingOutside_Ben.csv",                                0),
  
     # Christian
     ("christian_jumping_right_hand",
-     "ELEC292-Project\\Data\\CSV\\ELEC292_Jumping_RightHand_Data_Christian.csv",  1),
+     "Data\\CSV\\ELEC292_Jumping_RightHand_Data_Christian.csv",                1),
     ("christian_walking_left_pocket",
-     "ELEC292-Project\\Data\\CSV\\ELEC292_Walking_LeftPocket_Data_Christian.csv", 0),
+     "Data\\CSV\\ELEC292_Walking_LeftPocket_Data_Christian.csv",               0),
 ]
 
 # load data from CSV, drop absolute acc, convert to numpy array
