@@ -5,70 +5,54 @@ import h5py
 
 HDF5_FILE = 'data_storage.h5'
 
-# (hdf5_dataset_name, csv_path, moving_avg_window)
-# Moving-average window chosen to cover ~0.15 s of signal at each sample rate.
-# All datasets are resampled to 100 Hz in data_storage.py before being stored,
-# so after resampling every dataset uses 100 Hz -> window = 15 samples (~0.15 s).
-# NOTE: Sachin's 10 Hz data is upsampled to 100 Hz, so 15 samples is also correct.
+# 15 was the chosen window sizes, not set to a constant because the team was testing differnet windows per dataset
 DATASETS = [
-    # Sachin – originally 10 Hz, resampled to 100 Hz in data_storage.py
-    ("sachin_jumping_sweater_pocket",
-     "Data_Jumping_SweaterPocket_Sachin.csv",      15),
-    ("sachin_walking_sweater_pocket",
-     "Data_Walking_SweaterPocket_Sachin.csv",      15),
+    # Sachin
+    ("sachin_jumping_sweater_pocket", "Data_Jumping_SweaterPocket_Sachin.csv", 15),
+    ("sachin_walking_sweater_pocket", "Data_Walking_SweaterPocket_Sachin.csv", 15),
 
-    # Ben – 100 Hz
-    ("ben_jumping",
-     "Data_Jumping_Ben.csv",                       15),
-    ("ben_walking_outside",
-     "Data_WalkingOutside_Ben.csv",                15),
+    # Ben
+    ("ben_jumping", "Data_Jumping_Ben.csv", 15),
+    ("ben_walking_outside","Data_WalkingOutside_Ben.csv", 15), 
 
-    # Christian – 100 Hz
-    ("christian_jumping_right_hand",
-     "ELEC292_Jumping_RightHand_Data_Christian.csv",  15),
-    ("christian_walking_left_pocket",
-     "ELEC292_Walking_LeftPocket_Data_Christian.csv", 15),
-]
+    # Christian
+    ("christian_jumping_right_hand", "ELEC292_Jumping_RightHand_Data_Christian.csv", 15),
+    ("christian_walking_left_pocket", "ELEC292_Walking_LeftPocket_Data_Christian.csv", 15)]
 
-
+# returns a N x 4 array with time, x, y and z cols
 def load_csv(path: str) -> pd.DataFrame:
-    """Load CSV and return a DataFrame with columns [time, x, y, z]."""
     df = pd.read_csv(path)
     df = df.iloc[:, :4]
     df.columns = ['time', 'x', 'y', 'z']
     return df
 
-
+# remove duplicates and reset indexes
 def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
-    """Drop fully duplicated rows and reset the index."""
-    n_before  = len(df)
-    df        = df.drop_duplicates().reset_index(drop=True)
-    n_removed = n_before - len(df)
+    len_before  = len(df)
+    df = df.drop_duplicates().reset_index(drop=True)
+    n_removed = len_before - len(df)
     if n_removed > 0:
-        print(f"    Duplicates removed : {n_removed}")
+        print(f"Duplicates removed: {n_removed}")
     return df
 
-
+# fill data/time gaps by linear interpolation, only applies if gaps > 3x median gap
 def fill_time_gaps(df: pd.DataFrame, gap_threshold: float = 3.0) -> pd.DataFrame:
-    """
-    Detect gaps in the time column larger than gap_threshold * median_dt
-    and fill them by linear interpolation.
-    """
-    diffs     = np.diff(df['time'].values)
+    diffs = np.diff(df['time'].values)
     diffs_pos = diffs[diffs > 0]
     median_dt = float(np.median(diffs_pos))
-    gap_mask  = diffs > gap_threshold * median_dt
-    n_gaps    = gap_mask.sum()
+    gap_mask = diffs > gap_threshold * median_dt
+    n_gaps = gap_mask.sum()
 
     if n_gaps == 0:
         return df
 
-    print(f"    Time gaps found    : {n_gaps}  (filling by interpolation)")
+    print(f"gaps found: {n_gaps}  (filling by interpolation)")
 
+    # gap filling
     new_rows = []
     for idx in np.where(gap_mask)[0]:
-        t0     = df['time'].iloc[idx]
-        t1     = df['time'].iloc[idx + 1]
+        t0 = df['time'].iloc[idx]
+        t1 = df['time'].iloc[idx + 1]
         n_fill = max(1, round((t1 - t0) / median_dt) - 1)
         t_fill = np.linspace(t0, t1, n_fill + 2)[1:-1]
 
@@ -78,49 +62,37 @@ def fill_time_gaps(df: pd.DataFrame, gap_threshold: float = 3.0) -> pd.DataFrame
                 'time': t,
                 'x': df['x'].iloc[idx] + alpha * (df['x'].iloc[idx + 1] - df['x'].iloc[idx]),
                 'y': df['y'].iloc[idx] + alpha * (df['y'].iloc[idx + 1] - df['y'].iloc[idx]),
-                'z': df['z'].iloc[idx] + alpha * (df['z'].iloc[idx + 1] - df['z'].iloc[idx]),
-            })
+                'z': df['z'].iloc[idx] + alpha * (df['z'].iloc[idx + 1] - df['z'].iloc[idx])})
 
     inserts = pd.DataFrame(new_rows)
-    df      = pd.concat([df, inserts], ignore_index=True)
-    df      = df.sort_values('time').reset_index(drop=True)
-    print(f"    Rows after fill    : {len(df)}")
+    df = pd.concat([df, inserts], ignore_index=True)
+    df = df.sort_values('time').reset_index(drop=True)
+    print(f"Rows after fill: {len(df)}")
     return df
 
-
+# apply moving average filter of window size, center = True to reduce phase shift, min_periods = 1 to avoid NaNs at edges
 def moving_average(df: pd.DataFrame, window: int) -> pd.DataFrame:
-    """
-    Apply a uniform moving-average filter to x, y, z columns independently.
-    min_periods=1 avoids NaNs at the signal edges.
-    """
-    df = df.copy()
+    df = df.copy() # edit a copy just to be safe
     for col in ['x', 'y', 'z']:
-        df[col] = df[col].rolling(window=window, center=True, min_periods=1).mean()
+        df[col] = df[col].rolling(window = window, center = True, min_periods = 1).mean()
     return df
 
-
+# runs everything
 def main():
-    if not os.path.exists(HDF5_FILE):
-        print(f"ERROR: {HDF5_FILE} not found. Run data_storage.py first.")
-        return
-
-    print(f"Opening {HDF5_FILE}\n")
-
+    # opens HDF5 file, creates groups and stores all data from CSVs
     with h5py.File(HDF5_FILE, 'a') as f:
 
+        # creates preprocessed group incase it was done wrong in datasotrage 
         if 'preprocessed' not in f:
             f.create_group('preprocessed')
 
+        # preprocesses each dataset and stores in HDF5
         for ds_name, csv_path, window in DATASETS:
-            print(f"── {ds_name}")
-
             df = load_csv(csv_path)
-            print(f"    Rows loaded        : {len(df)}")
 
             df = remove_duplicates(df)
             df = fill_time_gaps(df)
             df = moving_average(df, window)
-            print(f"    Moving avg window  : {window} samples (~0.15 s at 100 Hz)")
 
             data = df.values.astype(np.float32)
             key  = f'preprocessed/{ds_name}'
@@ -128,16 +100,14 @@ def main():
             if key in f:
                 del f[key]
 
-            f.create_dataset(key, data=data, compression='gzip', compression_opts=4)
-            f[key].attrs['columns']           = ['time_s', 'acc_x', 'acc_y', 'acc_z']
+            f.create_dataset(key, data = data, compression = 'gzip', compression_opts = 4)
+            f[key].attrs['columns'] = ['time_s', 'acc_x', 'acc_y', 'acc_z']
             f[key].attrs['moving_avg_window'] = window
-            f[key].attrs['label']             = f['raw'][ds_name].attrs['label']
-            f[key].attrs['label_name']        = f['raw'][ds_name].attrs['label_name']
+            f[key].attrs['label'] = f['raw'][ds_name].attrs['label']
+            f[key].attrs['label_name'] = f['raw'][ds_name].attrs['label_name']
 
-            print(f"    Written            : {data.shape}\n")
+    print("preprocessing done")
 
-    print("Preprocessing complete.")
-
-
+# allows file to run on its own, but also allows functions to be imported into other files without running main
 if __name__ == "__main__":
     main()
