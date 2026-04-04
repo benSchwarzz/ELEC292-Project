@@ -120,9 +120,10 @@ def save_predictions(predictions, output_path):
 # =============================================================================
 if __name__ == "__main__":
     preds = segment_and_predict(
-        csv_path="ELEC292-Project/Data/CSV/ELEC292_Jumping_RightHand_Data_Christian.csv",
-        model_path="ELEC292-Project/final_model.joblib",
-        window_seconds=5,
+        csv_path="Data/CSV/ELEC292_Jumping_RightHand_Data_Christian.csv",
+        model_path="final_model.joblib",
+        sampling_rate=50,
+        window_seconds=5
     )
     save_predictions(preds, "ELEC292-Project/output.csv")
 
