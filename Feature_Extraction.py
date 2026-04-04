@@ -4,7 +4,6 @@ import h5py
 from scipy.stats import skew, kurtosis
 from sklearn.preprocessing import StandardScaler
 
-
 h5_file = "data_storage.h5"
 
 def decode_labels(labels):
@@ -16,12 +15,14 @@ def decode_labels(labels):
             decoded.append(str(label))
     return decoded
 
+#Skew feature
 def skew_feature(signal):
     if np.allclose(signal, signal[0], atol=1e-8):
         return 0.0
     value = skew(signal)
     return 0.0 if np.isnan(value) else value
 
+#Kurtosis feature
 def kurtosis_feature(signal):
     if np.allclose(signal, signal[0], atol=1e-8):
         return 0.0
@@ -141,3 +142,5 @@ with h5py.File(h5_file, "a") as f:
         "test",
         data=test_features.drop(columns=["label"]).values
     )
+print("\nHDF5 files saved:")
+print("features")
