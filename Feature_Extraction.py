@@ -56,9 +56,9 @@ def extract_features(segment):
     if segment.shape[1] < 3:
         raise ValueError(f"Segment must have at least 3 columns. Got shape {segment.shape}")
 
-    x = segment[:, 0]
-    y = segment[:, 1]
-    z = segment[:, 2]
+    x = segment[:, 1]
+    y = segment[:, 2]
+    z = segment[:, 3]
 
     """if segment.shape[1] >= 4:
         abs_acc = segment[:, 3]

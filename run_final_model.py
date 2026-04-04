@@ -87,7 +87,7 @@ def save_predictions(predictions, output_path):
 # =============================================================================
 if __name__ == "__main__":
     preds = segment_and_predict(
-        csv_path="Data\\CSV\\Data_Jumping_Ben.csv",
+        csv_path="Data/CSV/ELEC292_Jumping_RightHand_Data_Christian.csv",
         model_path="final_model.joblib",
         sampling_rate=50,
         window_seconds=5
