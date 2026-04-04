@@ -1,124 +1,139 @@
 import numpy as np
 import pandas as pd
 import h5py
+from scipy.interpolate import interp1d
 
 OUTPUT_FILE = 'data_storage.h5'
 WINDOW_SECONDS = 5
+TARGET_SR = 100.0 # resamples all datasets to a 100 Hz
+WINDOW_LEN = int(TARGET_SR * WINDOW_SECONDS) # 500 samples/window
 TRAIN_RATIO = 0.9
-RANDOM_SEED = 292
+RANDOM_SEED = 292 # preset random seed for reproducibility
 
 # 1 = jumping, 0 = walking
 DATASETS = [
     # Sachin
     ("sachin_jumping_sweater_pocket",
-     "Data\\CSV\\Data_Jumping_SweaterPocket_Sachin.csv",                      1),
+     "Data_Jumping_SweaterPocket_Sachin.csv",      1),
     ("sachin_walking_sweater_pocket",
-     "Data\\CSV\\Data_Walking_SweaterPocket_Sachin.csv",                      0),
- 
+     "Data_Walking_SweaterPocket_Sachin.csv",      0),
+
     # Ben
     ("ben_jumping",
-     "Data\\CSV\\Data_Jumping_Ben.csv",                                       1),
+     "Data_Jumping_Ben.csv",                       1),
     ("ben_walking_outside",
-     "Data\\CSV\\Data_WalkingOutside_Ben.csv",                                0),
- 
+     "Data_WalkingOutside_Ben.csv",                0),
+
     # Christian
     ("christian_jumping_right_hand",
-     "Data\\CSV\\ELEC292_Jumping_RightHand_Data_Christian.csv",                1),
+     "ELEC292_Jumping_RightHand_Data_Christian.csv",  1),
     ("christian_walking_left_pocket",
-     "Data\\CSV\\ELEC292_Walking_LeftPocket_Data_Christian.csv",               0),
+     "ELEC292_Walking_LeftPocket_Data_Christian.csv", 0),
 ]
 
-# load data from CSV, drop absolute acc, convert to numpy array
+# returns a N x 4 array with time, x, y and z cols
 def load_csv(path: str) -> np.ndarray:
     df = pd.read_csv(path)
-    data = df.iloc[:, :4].values.astype(np.float32)
-    return data
+    return df.iloc[:, :4].values.astype(np.float32)
 
-# calculates sampling frequency, required bc not all datasets have the same collection frequency, have to normalize data so that all windows are the same legnth of time
-def sample_rate(data: np.ndarray) -> float:
+# estimate sampling freq of datasets based on time
+def get_sample_rate(data: np.ndarray) -> float:
     diffs = np.diff(data[:, 0])
-    diffs = diffs[diffs > 0] # safety check to remove -ve diffs
-    return float(1.0 / np.median(diffs)) # return frequncy 
+    diffs = diffs[diffs > 0]
+    return float(1.0 / np.median(diffs))
 
-# cut data into nonoverlapping windows
+# resample data to target_sr using linear interpolation, only applies if not already within 1 Hz of target_sr
+def resample_to_target(data: np.ndarray, target_sr: float = 100.0) -> np.ndarray:
+    current_sr = get_sample_rate(data)
+    
+    # if already close to target_sr, return original
+    if abs(current_sr - target_sr) < 1.0:
+        return data
+
+    t_orig = data[:, 0]
+    n_new  = int(np.round((t_orig[-1] - t_orig[0]) * target_sr)) + 1
+    t_new  = np.linspace(t_orig[0], t_orig[-1], n_new)
+
+    result = np.zeros((len(t_new), 4), dtype = np.float32)
+    result[:, 0] = t_new
+
+    # linear interpolation for x, y, z accelerations
+    for col in range(1, 4):
+        f = interp1d(t_orig, data[:, col], kind = 'linear', fill_value = 'extrapolate')
+        result[:, col] = f(t_new).astype(np.float32)
+
+    return result
+
+# cut data into windows of window_len samples, get rid of leftover samples if they dont fit
 def segment(data: np.ndarray, window_len: int) -> np.ndarray:
-    n_windows = len(data) // window_len # round down so only int number of windows
-    trimmed = data[: n_windows * window_len] # trim off extra samples
-    return trimmed.reshape(n_windows, window_len, 4) # reshape into 3D array
+    n_windows = len(data) // window_len
+    trimmed   = data[: n_windows * window_len]
+    return trimmed.reshape(n_windows, window_len, 4)
 
+# main function, runs everything
 def main():
     all_windows = []
-    all_labels = []
+    all_labels  = []
 
+    # opens HDF5 file, creates groups and stores all data from CSVs
     with h5py.File(OUTPUT_FILE, 'w') as f:
-
-        #create groups
-        raw_grp = f.create_group('raw')
+        raw_grp   = f.create_group('raw')
         prepr_grp = f.create_group('preprocessed')
-        seg_grp = f.create_group('segmented')
+        seg_grp   = f.create_group('segmented')
 
-        for ds_name, cv_path, label in DATASETS:
+        for ds_name, csv_path, label in DATASETS:
+            # load data
+            data      = load_csv(csv_path)
+            sr_orig   = get_sample_rate(data)
 
-            # load raw data
-            data = load_csv(cv_path)
-            sr = sample_rate(data)
-            window_len = int(sr * WINDOW_SECONDS)
-
-            # store raw data
-            raw_grp.create_dataset(ds_name, data = data, compression  = 'gzip', compression_opts = 4)
-            raw_grp[ds_name].attrs['sample_rate_hz'] = sr
+            # store and compress data, compressed with gzip level 4 to balance size and speed
+            raw_grp.create_dataset(ds_name, data = data, compression = 'gzip', compression_opts = 4)
+            raw_grp[ds_name].attrs['sample_rate_hz'] = sr_orig
             raw_grp[ds_name].attrs['label'] = label
-            raw_grp[ds_name].attrs['label_name'] = 'jumping' if label else 'walking'
+            raw_grp[ds_name].attrs['label_name'] = 'jumping' if label else 'walking' # 0 = walking, 1 = jumping as written above
             raw_grp[ds_name].attrs['columns'] = ['time_s', 'acc_x', 'acc_y', 'acc_z']
-            raw_grp[ds_name].attrs["window_len_used"] = window_len  
 
-            prepr_grp.create_dataset(
-                ds_name,
-                shape=data.shape,
-                dtype=np.float32,
-                compression="gzip",
-            )
-            prepr_grp[ds_name].attrs["note"] = (
-                "Placeholder – fill with preprocessed data in Step 4"
-            )   
+            # resample data to 100 Hz if needed
+            data_rs = resample_to_target(data, TARGET_SR)
 
-            # segment data into windows
-            windows = segment(data, window_len)
+            # create spaces for preprocessed data, will fill in preprocess.py
+            prepr_grp.create_dataset(ds_name, shape = data_rs.shape, dtype = np.float32, compression = 'gzip')
+            prepr_grp[ds_name].attrs['note'] = ("placeholder for preprocessed data, filled in later") # adds an atribiute to HDF5 file so team still knows that preprocessing needs to be done
+
+            # split data into 5s windows
+            windows = segment(data_rs, WINDOW_LEN)
             all_windows.append(windows)
-            all_labels.append(np.full(len(windows), label, dtype=np.int8))
+            all_labels.append(np.full(len(windows), label, dtype = np.int8))
 
-
-        # fin min window len and trim all windows to taht size
-        min_wl = min(w.shape[1] for w in all_windows)
-        trimmed_windows = [w[:, :min_wl, :] for w in all_windows]
-        X = np.concatenate(trimmed_windows, axis = 0)
+        # combine, shuffle, and split data 9 : 1
+        X = np.concatenate(all_windows, axis = 0)
         Y = np.concatenate(all_labels, axis = 0)
 
-        # shuffle data
         rng = np.random.default_rng(RANDOM_SEED)
-        indicies = rng.permutation(len(X))
-        X, Y = X[indicies], Y[indicies]
+        indices = rng.permutation(len(X))
+        X, Y = X[indices], Y[indices]
 
-        # split data
         split = int(TRAIN_RATIO * len(X))
-        X_train, X_test = X[ : split], X[split : ]
-        Y_train, Y_test = Y[ : split], Y[split : ]
+        X_train, X_test = X[:split], X[split:]
+        Y_train, Y_test = Y[:split], Y[split:]
 
-        # store segmented data
-        seg_grp.create_dataset("train", data = X_train, compression = "gzip")
-        seg_grp.create_dataset("train_labels", data = Y_train, compression = "gzip")
-        seg_grp.create_dataset("test", data = X_test,  compression = "gzip")
-        seg_grp.create_dataset("test_labels", data = Y_test,  compression = "gzip")
-         
+        # store segmented data in HDF5 file
+        seg_grp.create_dataset("train", data=X_train, compression='gzip')
+        seg_grp.create_dataset("train_labels", data=Y_train, compression='gzip')
+        seg_grp.create_dataset("test", data=X_test,  compression='gzip')
+        seg_grp.create_dataset("test_labels", data=Y_test,  compression='gzip')
+
+        # set attributes for future reference
         seg_grp.attrs["window_seconds"] = WINDOW_SECONDS
-        seg_grp.attrs["window_len_samples"] = min_wl
-        seg_grp.attrs["label_encoding"] = "0 = walking,  1 = jumping"
+        seg_grp.attrs["window_len_samples"] = WINDOW_LEN
+        seg_grp.attrs["target_sample_rate"] = TARGET_SR
+        seg_grp.attrs["label_encoding"]= "0 = walking, 1 = jumping"
         seg_grp.attrs["train_ratio"] = TRAIN_RATIO
         seg_grp.attrs["random_seed"] = RANDOM_SEED
-        seg_grp["train"].attrs["shape_description"] = "(n_windows, window_len, 4)  columns: time, acc_x, acc_y, acc_z"
+        seg_grp["train"].attrs["shape_description"] = ("n_windows, window_len, 4, cols: time, acc_x, acc_y, acc_z")
 
+    print("\ndata_storage.h5 done.")
 
-
-
+# allows this file to be run on its own, but also allows functions to be imported into preprocess.py without running main()
 if __name__ == "__main__":
     main()

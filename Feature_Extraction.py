@@ -4,7 +4,13 @@ import h5py
 from scipy.stats import skew, kurtosis
 from sklearn.preprocessing import StandardScaler
 
-h5_file = "data_storage.h5"
+H5_FILE = "data_storage.h5"
+
+
+
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
 
 def decode_labels(labels):
     decoded = []
@@ -15,23 +21,23 @@ def decode_labels(labels):
             decoded.append(str(label))
     return decoded
 
-#Skew feature
-def skew_feature(signal):
+def safe_skew(signal):
     if np.allclose(signal, signal[0], atol=1e-8):
         return 0.0
     value = skew(signal)
-    return 0.0 if np.isnan(value) else value
+    return 0.0 if np.isnan(value) else float(value)
+
 
 #Kurtosis feature
 def kurtosis_feature(signal):
     if np.allclose(signal, signal[0], atol=1e-8):
         return 0.0
     value = kurtosis(signal)
-    return 0.0 if np.isnan(value) else value
+    return 0.0 if np.isnan(value) else float(value)
+
 
 def calculate_stats(signal, prefix):
     signal = np.array(signal, dtype=float)
-
     return {
         f"mean_{prefix}": np.mean(signal),
         f"std_{prefix}": np.std(signal),
@@ -40,41 +46,69 @@ def calculate_stats(signal, prefix):
         f"range_{prefix}": np.max(signal) - np.min(signal),
         f"median_{prefix}": np.median(signal),
         f"var_{prefix}": np.var(signal),
-        f"skew_{prefix}": skew_feature(signal),
-        f"kurtosis_{prefix}": kurtosis_feature(signal),
+        f"skew_{prefix}": safe_skew(signal),
+        f"kurtosis_{prefix}": safe_kurtosis(signal),
         f"rms_{prefix}": np.sqrt(np.mean(signal**2))
     }
 
+
 def extract_features(segment):
+    """
+    Extract 30 statistical features (10 per axis) from a single window.
+
+    Parameters
+    ----------
+    segment : np.ndarray, shape (window_len, 4)
+        Columns are [time, acc_x, acc_y, acc_z].
+
+    Returns
+    -------
+    dict of feature_name -> float
+    """
     if segment.ndim != 2:
         raise ValueError(f"Expected 2D segment, got shape {segment.shape}")
+
+    # Fix shape if segment is flipped like (4, N)
+    if segment.shape[0] <= 5 and segment.shape[1] > 5:
+        segment = segment.T
 
     if segment.shape[1] < 3:
         raise ValueError(f"Segment must have at least 3 columns. Got shape {segment.shape}")
 
-    x = segment[:, 1]
-    y = segment[:, 2]
-    z = segment[:, 3]
+    x = segment[:, 0]
+    y = segment[:, 1]
+    z = segment[:, 2]
 
+    """if segment.shape[1] >= 4:
+        abs_acc = segment[:, 3]
+    else:
+        abs_acc = np.sqrt(x**2 + y**2 + z**2)
+"""
     features = {}
     features.update(calculate_stats(x, "x"))
     features.update(calculate_stats(y, "y"))
     features.update(calculate_stats(z, "z"))
     
+
     return features
 
-#Load Segmented Data From HDF5
+# LOAD SEGMENTED DATA FROM HDF5
 with h5py.File(h5_file, "r") as f:
     train_segments = f["segmented/train"][:]
-    test_segments = f["segmented/test"][:]
-    train_labels = f["segmented/train_labels"][:]
-    test_labels = f["segmented/test_labels"][:]
+    test_segments  = f["segmented/test"][:]
+    train_labels   = f["segmented/train_labels"][:]
+    test_labels    = f["segmented/test_labels"][:]
 
 train_labels = decode_labels(train_labels)
-test_labels = decode_labels(test_labels)
+test_labels  = decode_labels(test_labels)
 
+print("Train segments :", train_segments.shape)
+print("Test  segments :", test_segments.shape)
 
-#Extract Train Features
+print("Train segments:", train_segments.shape)
+print("Test segments:", test_segments.shape)
+
+# EXTRACT TRAIN FEATURES
 train_rows = []
 for i, segment in enumerate(train_segments):
     row = extract_features(segment)
@@ -83,8 +117,11 @@ for i, segment in enumerate(train_segments):
 
 train_features = pd.DataFrame(train_rows)
 
+print("\nTrain features created")
+print(train_features.head())
+print(train_features.shape)
 
-#Extract Test Features
+# EXTRACT TEST FEATURES
 test_rows = []
 for i, segment in enumerate(test_segments):
     row = extract_features(segment)
@@ -93,19 +130,21 @@ for i, segment in enumerate(test_segments):
 
 test_features = pd.DataFrame(test_rows)
 
+print("\nTest features created")
+print(test_features.head())
+print(test_features.shape)
 
-# Normalize Features
+# NORMALIZE FEATURES
 X_train = train_features.drop(columns=["label"])
-X_test = test_features.drop(columns=["label"])
-
+X_test  = test_features.drop(columns=["label"])
 y_train = train_features["label"]
-y_test = test_features["label"]
+y_test  = test_features["label"]
 
-feature_names = X_train.columns
+feature_names = X_train.columns.tolist()
 
-scaler = StandardScaler()
+scaler        = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
+X_test_scaled  = scaler.transform(X_test)
 
 train_features = pd.DataFrame(X_train_scaled, columns=feature_names)
 train_features["label"] = y_train.values
@@ -113,16 +152,20 @@ train_features["label"] = y_train.values
 test_features = pd.DataFrame(X_test_scaled, columns=feature_names)
 test_features["label"] = y_test.values
 
+print("\nNormalized train features created")
+print(train_features.head())
+print(train_features.shape)
 
-#Save CSV Files
+print("\nNormalized test features created")
+print(test_features.head())
+print(test_features.shape)
+
+# SAVE CSV FILES
 train_features.to_csv("train_features.csv", index=False)
-test_features.to_csv("test_features.csv", index=False)
+test_features.to_csv("test_features.csv",   index=False)
+print("\nCSV files saved: train_features.csv, test_features.csv")
 
-print("\nCSV files saved:")
-print("train_features.csv")
-print("test_features.csv")
-
-#Save Features into HDF5
+# SAVE FEATURES INTO HDF5
 with h5py.File(h5_file, "a") as f:
     if "features" not in f:
         features_group = f.create_group("features")
@@ -131,16 +174,24 @@ with h5py.File(h5_file, "a") as f:
 
     # Delete old datasets if they already exist
     for name in ["train", "test", "train_labels", "test_labels"]:
-        if name in features_group:
-            del features_group[name]
+        if name in features_grp:
+            del features_grp[name]
 
-    features_group.create_dataset(
-        "train",
-        data=train_features.drop(columns=["label"]).values
+    features_grp.create_dataset(
+        "train", data=train_features.drop(columns=["label"]).values
     )
-    features_group.create_dataset(
-        "test",
-        data=test_features.drop(columns=["label"]).values
+    features_grp.create_dataset(
+        "test",  data=test_features.drop(columns=["label"]).values
     )
-print("\nHDF5 files saved:")
-print("features")
+
+    # convert labels to numbers if needed
+    try:
+        train_label_data = train_features["label"].astype(float).values
+        test_label_data = test_features["label"].astype(float).values
+    except:
+        label_map = {"walking": 0, "jumping": 1}
+        train_label_data = train_features["label"].map(label_map).values
+        test_label_data = test_features["label"].map(label_map).values
+
+    features_group.create_dataset("train_labels", data=train_label_data)
+    features_group.create_dataset("test_labels", data=test_label_data)
